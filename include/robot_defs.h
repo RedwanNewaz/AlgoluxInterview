@@ -44,7 +44,6 @@ struct FieldLocation
 };
 
 /* Field location structure */
-const int MARKER_DIM = 3;
 struct MarkerObservation
 {
     int markerIndex;    // Index of observed marker [0-3]

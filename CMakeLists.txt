@@ -17,7 +17,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
         )
 link_directories(/usr/lib/x86_64-linux-gnu/)
-add_executable(localization main.cpp engine/FilterBase.cpp include/FilterBase.h engine/EKF.cpp include/EKF.h)
+add_executable(localization main.cpp engine/FilterBase.cpp include/FilterBase.h engine/EKF.cpp include/EKF.h engine/ParticleFilter.cpp include/ParticleFilter.h)
 message(STATUS Hi ${CONTROLLER_LIBRARY})
 target_link_libraries(localization
         ${CONTROLLER_LIBRARY}

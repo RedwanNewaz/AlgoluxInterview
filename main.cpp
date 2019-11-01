@@ -9,8 +9,9 @@
 #include "controller.h"
 #include "main.h"
 #include "EKF.h"
+#include "ParticleFilter.h"
 
-EKF stateEstimator;
+ParticleFilter stateEstimator;
 
 /**
  * getRobotPositionEstimate()
@@ -88,7 +89,7 @@ void mydisplay()
     // TODO: Write your drawing procedures here 
     //       (e.g., robot position uncertainty representation)
 
-    stateEstimator.render_ellipse();
+//    stateEstimator.render_ellipse();
 
 }
 

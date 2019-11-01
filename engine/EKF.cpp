@@ -48,17 +48,13 @@ void EKF::predict(const Eigen::VectorXd &dX) {
     R(0, 0) = pow(ALPHA1*fabs(v) + ALPHA2*fabs(w), 2);
     R(1, 1) = pow(ALPHA3*fabs(v) + ALPHA4*fabs(w), 2);
 
-
-//    P.setIdentity();
-
     if(fabs(w) > EPS)
         nonZeroAngularVelocity(v,w,theta);
     else
         zeroAngularVelocity(v,w,theta);
 
-    if(last_seen_landmarks_.size()>0)
-        landmark_update(last_seen_landmarks_);
-
+    state = state_new;
+    P0 = P;
 
 
 }
@@ -71,18 +67,6 @@ void EKF::landmark_update(const std::vector<MarkerObservation>& landmarks) {
 //    Q.setZero();
 //    H.setZero();
 //    I.setIdentity();
-
-    /**
-     * need to keep track of landmarks.
-     * Canonically this function is called when landmarks are detected.
-     * I also called this function when motion model is updated
-     */
-    if(last_seen_landmarks_.size()>0)
-        for (int i = 0; i < last_seen_landmarks_.size(); ++i) {
-            last_seen_landmarks_[i] = landmarks[i];
-        }
-    else
-    std::copy(landmarks.begin(),landmarks.end(),std::back_inserter(last_seen_landmarks_));
 
 
     for (const auto &l : landmarks) {
