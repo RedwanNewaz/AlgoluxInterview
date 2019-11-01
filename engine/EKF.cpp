@@ -24,11 +24,7 @@ void EKF::init(double t0, const Eigen::VectorXd &x0) {
     V.setZero();
     R.setZero();
 
-
-
-    initialized = true;
-
-
+    initialized_ = true;
 
 
 }
@@ -36,11 +32,13 @@ void EKF::init(double t0, const Eigen::VectorXd &x0) {
 
 void EKF::predict(const Eigen::VectorXd &dX) {
 
+    assert(initialized_ && "EKF is not intialized");
+
 //    G.setIdentity();
 //    V.setZero();
 //    R.setZero();
 
-
+    // convert delta to control inputs which are v (linear velocity) and omega (angular velocity)
 
     double v = sqrt(dX(0)*dX(0) + dX(1)*dX(1));
     double w = dX(2);
@@ -53,17 +51,13 @@ void EKF::predict(const Eigen::VectorXd &dX) {
 
 //    P.setIdentity();
 
-
-
-
-
     if(fabs(w) > EPS)
         nonZeroAngularVelocity(v,w,theta);
     else
         zeroAngularVelocity(v,w,theta);
 
-    if(last_seen.size()>0)
-        landmark_update(last_seen);
+    if(last_seen_landmarks_.size()>0)
+        landmark_update(last_seen_landmarks_);
 
 
 
@@ -73,19 +67,22 @@ void EKF::landmark_update(const std::vector<MarkerObservation>& landmarks) {
 
 //    Eigen::VectorXf ZHAT(2);
 //    Eigen::MatrixXf H(2,3);
-
+//
 //    Q.setZero();
 //    H.setZero();
 //    I.setIdentity();
 
-    if(last_seen.size()>0)
-        for (int i = 0; i < last_seen.size(); ++i) {
-            last_seen[i] = landmarks[i];
+    /**
+     * need to keep track of landmarks.
+     * Canonically this function is called when landmarks are detected.
+     * I also called this function when motion model is updated
+     */
+    if(last_seen_landmarks_.size()>0)
+        for (int i = 0; i < last_seen_landmarks_.size(); ++i) {
+            last_seen_landmarks_[i] = landmarks[i];
         }
     else
-    std::copy(landmarks.begin(),landmarks.end(),std::back_inserter(last_seen));
-
-
+    std::copy(landmarks.begin(),landmarks.end(),std::back_inserter(last_seen_landmarks_));
 
 
     for (const auto &l : landmarks) {
@@ -154,7 +151,6 @@ void EKF::zeroAngularVelocity(double v, double w, double theta) {
 
     // Handle case when w ~ 0
     // Use L'Hopital rule with lim w -> 0
-
 
     G(0, 2) = -v*sin(theta)*dt;
     G(1, 2) =  v*cos(theta)*dt;

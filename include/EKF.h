@@ -42,7 +42,7 @@ private:
     Eigen::Matrix<double, 3, 2> K; // Kalman gain
     Eigen::Matrix<double, 3, 3> I; // Identity
 
-    std::vector<MarkerObservation> last_seen;
+    std::vector<MarkerObservation> last_seen_landmarks_;
 
 
 protected:

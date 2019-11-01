@@ -10,16 +10,18 @@
 #include <iostream>
 #include <vector>
 #include <Eigen/Dense>
+#include <GL/glu.h>
 #include "robot_defs.h"
+#include "controller.h"
 
 class FilterBase {
 public:
     /**
     * Create a Filter with the specified matrices.
-    *   A - System dynamics matrix
-    *   C - Output matrix
-    *   Q - Process noise covariance
-    *   R - Measurement noise covariance
+    *   G - System dynamics matrix
+    *   V - Output matrix
+    *   R - Process noise covariance
+    *   Q - Measurement noise covariance
     *   P - Estimate error covariance
     */
 
@@ -35,6 +37,8 @@ public:
      */
      void set(const RobotParams& parm, const std::vector<FieldLocation>& landmark);
 
+     void render_ellipse();
+
 
 protected:
     /**
@@ -43,14 +47,12 @@ protected:
      * P  - Estimated error covariance
      */
     Eigen::MatrixXd P, P0;
-    // System dimensions
+    // State dimensions
     int n;
-    // Initial and current time
-    double t0, t;
     // Discrete time step
     double dt;
-    // Is the filter initialized?
-    bool initialized;
+    // Is the filter initialized_?
+    bool initialized_;
 
     // Estimated states
     Eigen::VectorXd state, state_new;
@@ -61,10 +63,11 @@ protected:
 
     Eigen::Matrix<double, 2, 2> R; // motion noise
 
-    // parameter
+    // sensor noise parameters
     double DETECTION_RANGE_ALPHA, DETECTION_ANGLE_SIGMA;
+    // process noise paramters
     double ALPHA1, ALPHA2, ALPHA3, ALPHA4;
-
+    // threshold for detecting zero angular velocity
     const double EPS = 1e-4;
 
 

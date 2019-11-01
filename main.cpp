@@ -87,22 +87,8 @@ void mydisplay()
 {
     // TODO: Write your drawing procedures here 
     //       (e.g., robot position uncertainty representation)
-    
-    
-//    // Example drawing procedure
-    //int pixelX, pixelY;
-    //double globalX = 1.0, globalY = -1.0;
-    //const int NUM_POINTS = 8;
-    //const double POINT_SPREAD = 0.2;
-    
-    //// Draw cyan colored points at specified global locations on field
-    //glBegin(GL_POINTS);
-    //glColor3f(0.0, 1.0, 1.0);
-    //for(int i=0; i<NUM_POINTS; i++){
-    //    global2pixel(globalX, globalY + (i * POINT_SPREAD), pixelX, pixelY);
-    //    glVertex2i(pixelX, pixelY);
-    //}
-    //glEnd();
+
+    stateEstimator.render_ellipse();
 
 }
 
