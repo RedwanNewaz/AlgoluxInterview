@@ -133,17 +133,17 @@ double ParticleFilter::compute_likelihood(double mu, double sigma) {
 
 void ParticleFilter::resampling() {
 
-    w_cum = np.cumsum(pw)
-    base = np.arange(0.0, 1.0, 1/NP)
-    re_sample_id = base + np.random.uniform(0, 1/NP)
-    indexes = []
-    ind = 0
-    for ip in range(NP):
-    while re_sample_id[ip] > w_cum[ind]:
-    ind += 1
-    indexes.append(ind)
-
-    px = px[:, indexes]
-    pw = np.zeros((1, NP)) + 1.0 / NP  # init weight
+//    w_cum = np.cumsum(pw)
+//    base = np.arange(0.0, 1.0, 1/NP)
+//    re_sample_id = base + np.random.uniform(0, 1/NP)
+//    indexes = []
+//    ind = 0
+//    for ip in range(NP):
+//    while re_sample_id[ip] > w_cum[ind]:
+//    ind += 1
+//    indexes.append(ind)
+//
+//    px = px[:, indexes]
+//    pw = np.zeros((1, NP)) + 1.0 / NP  # init weight
 
 }
