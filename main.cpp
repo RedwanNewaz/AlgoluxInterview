@@ -8,6 +8,9 @@
 #include "robot_defs.h"
 #include "controller.h"
 #include "main.h"
+#include "EKF.h"
+
+EKF stateEstimator;
 
 /**
  * getRobotPositionEstimate()
@@ -17,10 +20,11 @@
 void getRobotPositionEstimate(RobotState& estimatePosn)
 {
     // TODO: Write your procedures to set the current robot position estimate here
+    auto X = stateEstimator.get_state();
     
-//    estimatePosn.x = 0.0;
-//    estimatePosn.y = 0.0;
-//    estimatePosn.theta = 0.0;
+    estimatePosn.x = X(0);
+    estimatePosn.y = X(1);
+    estimatePosn.theta = X(2);
 }
 
 /**
@@ -33,6 +37,10 @@ void getRobotPositionEstimate(RobotState& estimatePosn)
 void motionUpdate(RobotState delta)
 {
     // TODO: Write your motion update procedures here
+    Eigen::VectorXd dX(STATE_SIZE);
+    dX << delta.x, delta.y, delta.theta;
+    stateEstimator.predict(dX);
+
     
 }
 
@@ -46,6 +54,7 @@ void motionUpdate(RobotState delta)
 void sensorUpdate(std::vector<MarkerObservation> observations)
 {
     // TODO: Write your sensor update procedures here
+    stateEstimator.landmark_update(observations);
     
 }
 
@@ -59,6 +68,13 @@ void myinit(RobotState robotState, RobotParams robotParams,
             FieldLocation markerLocations[NUM_LANDMARKS])
 {
     // TODO: Write your initialization procedures here
+    Eigen::VectorXd x0(STATE_SIZE);
+    x0<<robotState.x,robotState.y,robotState.theta;
+    std::vector<FieldLocation> landmarks;
+    for(int i = 0; i<NUM_LANDMARKS; ++i)
+        landmarks.emplace_back(markerLocations[i]);
+    stateEstimator.set(robotParams, landmarks);
+    stateEstimator.init(1, x0);
     
 }
 

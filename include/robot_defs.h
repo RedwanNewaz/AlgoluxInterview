@@ -28,6 +28,7 @@ const int ROBOT_RADIUS = 7;
 const int NUM_LANDMARKS = 4;
 
 /* Robot state */
+const int STATE_SIZE = 3;
 struct RobotState 
 {
     double x;      // x-position (in meters)
@@ -43,6 +44,7 @@ struct FieldLocation
 };
 
 /* Field location structure */
+const int MARKER_DIM = 3;
 struct MarkerObservation
 {
     int markerIndex;    // Index of observed marker [0-3]
