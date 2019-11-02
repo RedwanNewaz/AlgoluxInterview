@@ -8,6 +8,16 @@
 #include "FilterBase.h"
 #include <random>
 #include <math.h>
+#include <numeric>
+#include <algorithm>
+
+struct Particle{
+    int id ;
+    double x, y, theta;
+    double weight;
+};
+
+static std::default_random_engine gen;
 
 class ParticleFilter : public FilterBase{
 public:
@@ -32,7 +42,7 @@ public:
 
 
 private:
-    const int num_particles_ = 100;
+    const int num_particles_ = 300;
     const int resample_particles = 50;
 
     // system matrix
@@ -41,14 +51,17 @@ private:
     Eigen::Matrix<double, 3, 2> B;
 
     // particles represntation
-    std::vector<Eigen::Vector3d> particles_;
+    std::vector<Particle> particles_;
     std::vector<double>weights_;
 
     // landmarks that the robot has seen so far
     std::vector<MarkerObservation> last_seen_landmarks_;
 protected:
-    Eigen::Vector3d motion_model(const Eigen::Vector3d &x, const Eigen::Vector2d & u);
-    double randn();
+    /**
+     * Calculate and output the average weighted error of the particle filter
+     * all time steps so far. Then compute error
+     */
+    void approximate_state_cov();
     /**
      * @param mu mean
      * @param sigma standard deviation
@@ -56,8 +69,12 @@ protected:
      */
     double compute_likelihood(double mu, double sigma);
 
-    // resample particles based on its weight
+    /**
+     * resample particles based on its weight
+     */
     void resampling();
+
+    FieldLocation convertVehicleToMapCoords(const MarkerObservation &marker, const Particle &p );
 
 
 };

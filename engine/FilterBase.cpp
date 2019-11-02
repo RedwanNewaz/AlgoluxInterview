@@ -63,7 +63,7 @@ void FilterBase::render_ellipse() {
     double e0 = sqrt(a.eigenvalues()(0));
     double e1 = sqrt(a.eigenvalues()(1));
 
-    printf("(%ld, %ld)\n", e0, e1);
+//    printf("(%ld, %ld)\n", e0, e1);
 
     if (e0 > e1) {
         theta = atan2(a.eigenvectors()(1, 0), a.eigenvectors()(0, 0));
@@ -108,7 +108,7 @@ void FilterBase::render_ellipse() {
     glVertex2f(0, minor);
     glEnd();
 
-    std::cout<<major<<"\t"<<minor<<"\n";
+//    std::cout<<major<<"\t"<<minor<<"\n";
 
     // draw ellipise
     glBegin(GL_LINE_LOOP);
