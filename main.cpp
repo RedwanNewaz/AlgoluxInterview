@@ -11,8 +11,14 @@
 #include "EKF.h"
 #include "ParticleFilter.h"
 
-EKF stateEstimator;
+#define KALMAN
 
+
+#ifdef KALMAN
+EKF stateEstimator;
+#else
+ParticleFilter stateEstimator;
+#endif
 /**
  * getRobotPositionEstimate()
  * This function is called by the controller to retrieve the current 
@@ -55,7 +61,7 @@ void motionUpdate(RobotState delta)
 void sensorUpdate(std::vector<MarkerObservation> observations)
 {
     // TODO: Write your sensor update procedures here
-    stateEstimator.landmark_update(observations);
+    stateEstimator.measurement_update(observations);
     
 }
 

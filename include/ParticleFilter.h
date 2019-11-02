@@ -38,7 +38,7 @@ public:
      * Landmark update based on measured values. The key idea is to memorize the landmark.
      * Update this landmarks when new landmarks detected
      */
-    void landmark_update(const std::vector<MarkerObservation>& landmarks);
+    void landmark_update(const std::vector<MAP>& landmarks);
 
 
 private:
@@ -67,7 +67,7 @@ protected:
      * @param sigma standard deviation
      * @return Gaussina likelihood
      */
-    double compute_likelihood(double mu, double sigma);
+//    double compute_likelihood(double mu, double sigma);
 
     /**
      * resample particles based on its weight
@@ -75,6 +75,8 @@ protected:
     void resampling();
 
     FieldLocation convertVehicleToMapCoords(const MarkerObservation &marker, const Particle &p );
+
+    void dataAssociation(const std::vector<std::pair<int, FieldLocation>>& predicted, std::vector<std::pair<int, FieldLocation>>& observations);
 
 
 };

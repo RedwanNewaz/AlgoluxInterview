@@ -45,6 +45,8 @@ void FilterBase::set(const RobotParams &parm, const std::vector<FieldLocation> &
 //    R(0, 0) = pow(parm.odom_noise_rotation_from_rotation + parm.odom_noise_rotation_from_translation, 2);
 //    R(1, 1) = pow(ALPHA3 + ALPHA4, 2);
 
+    FOV = parm.angle_fov;
+
 
     // Don't forget to initialize specific filter later !
     initialized_ = false;
@@ -123,3 +125,41 @@ void FilterBase::render_ellipse() {
 
 }
 
+
+
+double FilterBase::constrain_angle(double radian) {
+    if (radian < -M_PI) {
+        radian += 2*M_PI;
+    } else if (radian > M_PI) {
+        radian -= 2*M_PI;
+    }
+
+    return radian;
+}
+
+void FilterBase::measurement_update(const std::vector<MarkerObservation> &landmarks) {
+    // given a list of landmark find the one which is detected
+
+    /**
+     *  landmarks are given  with respect to robot
+     *  so we can easily filter out others because robot has FOV.
+     *  Here I have used vector to store information. In some cases
+     *  robot might detect two landmarks.
+     */
+
+    std::vector<MAP> detected;
+    for(auto &l:landmarks)
+    {
+        if(l.orientation<FOV)
+        {
+            debug("marker detected "<<l.markerIndex);
+
+
+            detected.push_back(std::make_pair(true_landmarks_[l.markerIndex], l));
+        }
+    }
+
+    landmark_update(detected);
+
+
+}

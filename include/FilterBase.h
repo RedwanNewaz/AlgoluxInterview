@@ -14,6 +14,9 @@
 #include "robot_defs.h"
 #include "controller.h"
 
+#define debug(x) std::cout<< "[FilterBase]:: " <<x<<"\n";
+typedef std::pair<FieldLocation, MarkerObservation> MAP;
+
 class FilterBase {
 public:
     /**
@@ -39,6 +42,12 @@ public:
 
      void render_ellipse();
 
+     void measurement_update(const std::vector<MarkerObservation>& landmarks);
+
+     virtual void landmark_update(const std::vector<MAP>& landmarks) = 0;
+
+//     virtual void landmark_updates(const std::vector<MarkerObservation>& landmarks) = 0;
+
 
 protected:
     /**
@@ -46,7 +55,9 @@ protected:
      * P0 - Initial error covariance
      * P  - Estimated error covariance
      */
+
     Eigen::MatrixXd P, P0;
+
     // State dimensions
     int n;
     // Discrete time step
@@ -69,6 +80,11 @@ protected:
     double ALPHA1, ALPHA2, ALPHA3, ALPHA4;
     // threshold for detecting zero angular velocity
     const double EPS = 1e-4;
+
+    // double detection FOV
+    double FOV;
+
+    double constrain_angle(double radian);
 
 
 

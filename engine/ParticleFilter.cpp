@@ -19,7 +19,7 @@ void ParticleFilter::init(double t0, const Eigen::VectorXd &x0) {
     std::normal_distribution<double> dist_y(state(1), sigma_landmark[1]);
     std::normal_distribution<double> dist_theta(state(2), sigma_landmark[2]);
 
-    // initialize all particles to x0 with measurement uncertainty all all weights to 1
+    // initialize all particles_ to x0 with measurement uncertainty all all weights to 1
 
     for (int i = 0; i < num_particles_; ++i) {
         double sample_x, sample_y, sample_theta;
@@ -79,52 +79,67 @@ void ParticleFilter::predict(const Eigen::VectorXd &delta) {
 
     approximate_state_cov();
     state = state_new;
+    P0 = P;
 
 }
 
-void ParticleFilter::landmark_update(const std::vector<MarkerObservation> &landmarks) {
-    // this function is the heart of the particle filter
-    double sigma_x, sigma_y;
-    sigma_x = sigma_y = DETECTION_RANGE_ALPHA;
+void ParticleFilter::landmark_update(const std::vector<MAP> &landmarks) {
 
-    for(int i=0; i < num_particles_; ++i) {
 
-        // Convert detected landmarks
-        double probability = 1;
-        for(const auto &l : landmarks)
-        {
-            FieldLocation z = convertVehicleToMapCoords(l, particles_[i]);
-            // find the closes one
-            double dx = true_landmarks_[l.markerIndex]. x - z.x;
-            double dy = true_landmarks_[l.markerIndex]. y - z.y;
-            probability *= 1.0/(2*M_PI*sigma_x*sigma_y) * exp(-dx*dx / (2*sigma_x*sigma_x))* exp(-dy*dy / (2*sigma_y*sigma_y));
-        }
-
-        particles_[i].weight = probability;
-        weights_[i] = probability;
-        // Using the converted observations perform data association
-    }
-
-    // weights are updated, now perform resampling
-    resampling();
-    approximate_state_cov();
+        // weights are updated, now perform resampling
+//    resampling();
+//    approximate_state_cov();
 }
 
 
 void ParticleFilter::resampling() {
 
-    // Resample particles with replacement with probability proportional to their weight.
+    // Resample particles_ with replacement with probability proportional to their weight.
 
-    std::discrete_distribution<int> d(weights_.begin(), weights_.end());
-    std::vector<Particle> weighted_sample(num_particles_);
+//    std::discrete_distribution<int> d(weights_.begin(), weights_.end());
+//    std::vector<Particle> new_particles_(num_particles_);
+//
+//    for(int i = 0; i < num_particles_; ++i){
+//        int j = d(gen);
+//        new_particles_.at(i) = particles_.at(j);
+//    }
+//
+//    particles_ = weighted_sample;
 
-    for(int i = 0; i < num_particles_; ++i){
-        int j = d(gen);
-        weighted_sample.at(i) = particles_.at(j);
+
+    std::vector<Particle> new_particles_;
+
+    // get all of the current weights
+    std::vector<double> weights;
+    for (int i = 0; i < num_particles_; i++) {
+        weights.push_back(particles_[i].weight);
     }
 
-    particles_ = weighted_sample;
+    // generate random starting index for resampling wheel
+    std::uniform_int_distribution<int> uniintdist(0, num_particles_-1);
+    auto index = uniintdist(gen);
 
+    // get max weight
+    double max_weight = *max_element(weights.begin(), weights.end());
+
+    // uniform random distribution [0.0, max_weight)
+    std::uniform_real_distribution<double> unirealdist(0.0, max_weight);
+
+    double beta = 0.0;
+
+    // spin the resample wheel!
+    for (int i = 0; i < num_particles_; i++) {
+        beta += unirealdist(gen) * 2.0;
+        while (beta > weights[index]) {
+            beta -= weights[index];
+            index = (index + 1) % num_particles_;
+        }
+        new_particles_.push_back(particles_[index]);
+    }
+
+//    particles_ = new_particles_;
+    particles_.clear();
+    std::copy(new_particles_.begin(),new_particles_.end(),std::back_inserter(particles_));
 
 }
 
@@ -140,7 +155,8 @@ void ParticleFilter::approximate_state_cov() {
         }
     }
     // update eigen vector
-    state_new << best_particle.x, best_particle.y, best_particle.theta;
+    state_new << best_particle.x, best_particle.y,
+            constrain_angle(best_particle.theta);
 
     // TODO - compute covariance
 
@@ -160,12 +176,54 @@ void ParticleFilter::approximate_state_cov() {
 
 FieldLocation ParticleFilter::convertVehicleToMapCoords(const MarkerObservation &marker, const Particle &p) {
 
-    double o_x = marker.distance * cos(p.theta);
-    double o_y = marker.distance * sin(p.theta);
+    double x,y;
+    double r = marker.distance;
+    double q = marker.orientation;
+    x = p.x - r*sin(p.theta) + r*sin(q+p.theta);
+    y = p.y + r*cos(p.theta) - r*cos(q+p.theta);
 
-    double x = p.x + o_x * cos(p.theta) - o_y * sin(p.theta);
-    double y = p.y + o_x * sin(p.theta) - o_y * cos(p.theta);
+    return {x,y};
 
-    return {x, y};
+}
+
+void ParticleFilter::dataAssociation(const std::vector<std::pair<int, FieldLocation>> &predicted,
+                                     std::vector<std::pair<int, FieldLocation>> &observations) {
+
+    // TODO: Find the predicted measurement that is closest to each observed measurement and assign the
+    //   observed measurement to this particular landmark.
+    // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
+    //   implement this method and use it as a helper during the updateWeights phase.
+
+    for (unsigned int i = 0; i < observations.size(); i++) {
+
+        // grab current observation
+        FieldLocation o = observations[i].second;
+
+        // init minimum distance to maximum possible
+        double min_dist = std::numeric_limits<double>::max();
+
+        // init id of landmark from map placeholder to be associated with the observation
+        int map_id = -1;
+
+        for (unsigned int j = 0; j < predicted.size(); j++) {
+            // grab current prediction
+            FieldLocation p = predicted[j].second;
+
+            // get distance between current/predicted landmarks
+            auto dist = [](double x1, double y1, double x2, double y2) {
+                return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+            };
+            double cur_dist = dist(o.x, o.y, p.x, p.y);
+
+            // find the predicted landmark nearest the current observed landmark
+            if (cur_dist < min_dist) {
+                min_dist = cur_dist;
+                map_id = predicted[j].first;
+            }
+        }
+
+        // set the observation's id to the nearest predicted landmark's id
+        observations[i].first = map_id;
+    }
 
 }

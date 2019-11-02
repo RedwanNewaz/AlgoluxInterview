@@ -27,15 +27,15 @@ public:
     /**
      * Landmark update based on measured values. The time step is assumed to remain constant.
      */
-     void landmark_update(const std::vector<MarkerObservation>& landmarks);
+     void landmark_update(const std::vector<MAP>& landmarks);
 
 private:
     Eigen::Matrix<double, 3, 3> G; // Jacobian (motion update / state variable)
     Eigen::Matrix<double, 3, 2> V; // Jacobian (motion noise / state variable)
 
-
-    Eigen::Matrix<double, 2, 1> ZHAT; // expected sensor measurement
     Eigen::Matrix<double, 2, 1> Z; // sensor measurement
+    Eigen::Matrix<double, 2, 1> ZHAT; // expected sensor measurement
+
     Eigen::Matrix<double, 2, 3> H; // Jacobian
     Eigen::Matrix<double, 2, 2> S;
 
@@ -48,7 +48,6 @@ private:
 protected:
     void nonZeroAngularVelocity(double v, double w, double theta);
     void zeroAngularVelocity(double v, double w, double theta);
-    double constrain_angle(double radian);
 
 
 

@@ -34,9 +34,6 @@ void EKF::predict(const Eigen::VectorXd &dX) {
 
     assert(initialized_ && "EKF is not intialized");
 
-//    G.setIdentity();
-//    V.setZero();
-//    R.setZero();
 
     // convert delta to control inputs which are v (linear velocity) and omega (angular velocity)
 
@@ -59,51 +56,44 @@ void EKF::predict(const Eigen::VectorXd &dX) {
 
 }
 
-void EKF::landmark_update(const std::vector<MarkerObservation>& landmarks) {
-
-//    Eigen::VectorXf ZHAT(2);
-//    Eigen::MatrixXf H(2,3);
-//
-//    Q.setZero();
-//    H.setZero();
-//    I.setIdentity();
-
-
-    for (const auto &l : landmarks) {
-        Z(0) = l.distance;
-        Z(1) = l.orientation;
-
-        if (fabs(l.distance) > EPS) {
-            double range, bearing;
-
-            ZHAT(0) = range;
-            ZHAT(1) = bearing;
-
-            ZHAT << l.distance, l.orientation;
-            int index = l.markerIndex;
-
-            H(0, 0) = -(true_landmarks_[index].x - state(0))/ZHAT(0);
-            H(0, 1) = -(true_landmarks_[index].y - state(1))/ZHAT(0);
-            H(0, 2) = 0;
-            H(1, 0) = (true_landmarks_[index].y - state(1))/pow(ZHAT(0),2);
-            H(1, 1) = -(true_landmarks_[index].x - state(0))/pow(ZHAT(0),2);
-            H(1, 2) = -1;
-
-            Q(0, 0) = pow(l.distance*DETECTION_RANGE_ALPHA, 2);
-            Q(1, 1) = pow(l.orientation*DETECTION_ANGLE_SIGMA, 2);
+void EKF::landmark_update(const std::vector<MAP>& landmarks) {
 
 
 
-            S = H*P*H.transpose() + Q;
 
-            K = P*H.transpose()*S.inverse();
-            state_new = state_new + K*(Z - ZHAT);
-            P = (I - K*H)*P;
+    for(auto& l: landmarks)
+    {
 
-            state_new(2) = constrain_angle(state_new(2));
+        // use global coordinate for markers
+        Z(0) = l.second.distance;
+        Z(1) = l.second.orientation;
 
-        }
+        FieldLocation m = l.first;
+        double dx = (m.x - state(0));
+        double dy = (m.y - state(1));
+
+        double q = pow(dx,2) + pow(dy,2);
+        ZHAT(0) = sqrt(q);
+        ZHAT(1) = atan2(dy, dx) - state(2);
+
+        H(0, 0) =  -(dx/sqrt(q));
+        H(0, 1) = -(dy/sqrt(q));
+        H(0, 2) = 0;
+        H(1, 0) = dy/q;
+        H(1, 1) = -dx/q;
+        H(1, 2) = -1;
+
+        Q(0, 0) = pow(DETECTION_RANGE_ALPHA, 2);
+        Q(1, 1) = pow(DETECTION_ANGLE_SIGMA, 2);
+
+        S = H*P*H.transpose() + Q;
+        K = P*H.transpose()*S.inverse();
+        state_new = state_new + K*(Z - ZHAT);
+        P = (I - K*H)*P;
+        state_new(2) = constrain_angle(state_new(2));
+
     }
+
     state = state_new;
     P0 = P;
 
@@ -154,14 +144,5 @@ void EKF::zeroAngularVelocity(double v, double w, double theta) {
 
 }
 
-double EKF::constrain_angle(double radian) {
-    if (radian < -M_PI) {
-        radian += 2*M_PI;
-    } else if (radian > M_PI) {
-        radian -= 2*M_PI;
-    }
-
-    return radian;
-}
 
 
