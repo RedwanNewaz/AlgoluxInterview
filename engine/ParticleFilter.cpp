@@ -86,60 +86,95 @@ void ParticleFilter::predict(const Eigen::VectorXd &delta) {
 void ParticleFilter::landmark_update(const std::vector<MAP> &landmarks) {
 
 
-        // weights are updated, now perform resampling
-//    resampling();
-//    approximate_state_cov();
+    /**************************************************************
+     * STEP 3:
+     * Compare each observation (by actual vehicle) to corresponding
+     * observation by the particle (landmark_in_range)
+     * update the particle weight based on this
+     **************************************************************/
+    double W = 0;
+    for(auto &p: particles_)
+    {
+        Eigen::Vector2d O, M, D, P, S, M_P, O_M;
+        P << p.x, p.y;
+        S << state(0), state(1);
+        double w = 1;
+        for (auto &l:landmarks)
+        {
+            FieldLocation map = l.first;
+            M << map.x, map.y;
+            M_P = M - P ;
+            MarkerObservation obs  = l.second;
+            O << obs.distance, obs.orientation;
+            O_M << M_P.norm(), atan2(M_P(1), M_P(0)) - p.theta;
+
+            // compute error
+            D  = O_M - O;
+            w *= compute_likelihood(D(0), D(1));
+        }
+
+        this->particles_[p.id].weight = w;
+        this->weights_[p.id] = w;
+        W += w;
+
+    }
+
+    // normalizing the weights
+//    std::transform(weights_.begin(),weights_.end(),weights_.begin(),[&](double val){return val/W;});
+
+    Eigen::VectorXd part;
+    part.resize(num_particles_);
+
+    if(fabs(W)<=0)
+    for(int i = 0; i<num_particles_; ++i)
+    {
+        weights_[i] = 1.0/num_particles_*1.0;
+//        debug(weights_[i]<<","<<W);
+        particles_[i].weight = weights_[i];
+        part(i) = weights_[i];
+    }
+    else
+        std::transform(weights_.begin(),weights_.end(),weights_.begin(),[&](double val){return val/W;});
+
+    // FixME - weight becomes infinity and zero
+//    double res = std::accumulate(weights_.begin(),weights_.end(),0.0);
+//    assert(res == 1.0);
+//    std::copy(weights_.begin(),weights_.end(),std::ostream_iterator<double>(std::cout," "));
+//    debug(" weights");
+//    int resample = 1.0/part.dot(part.transpose());
+//    debug("resample "<<resample);
+//
+//    if(resample<num_particles_/2)
+    resampling();
+
 }
 
 
 void ParticleFilter::resampling() {
 
     // Resample particles_ with replacement with probability proportional to their weight.
+    std::vector<Particle> resampled_particles;
+    std::random_device random_device;
+    std::mt19937 gen(random_device());
+    std::discrete_distribution<int> index(this->weights_.begin(), this->weights_.end());
 
-//    std::discrete_distribution<int> d(weights_.begin(), weights_.end());
-//    std::vector<Particle> new_particles_(num_particles_);
-//
-//    for(int i = 0; i < num_particles_; ++i){
-//        int j = d(gen);
-//        new_particles_.at(i) = particles_.at(j);
-//    }
-//
-//    particles_ = weighted_sample;
+    for (int c = 0; c < num_particles_; c++) {
 
+        int i = index(gen);
 
-    std::vector<Particle> new_particles_;
+        Particle p {
+                i,
+                this->particles_[i].x,
+                this->particles_[i].y,
+                this->particles_[i].theta,
+//                sample_x, sample_y, sample_theta,
+                1.0// initial weight is 1.0
+        };
 
-    // get all of the current weights
-    std::vector<double> weights;
-    for (int i = 0; i < num_particles_; i++) {
-        weights.push_back(particles_[i].weight);
+        resampled_particles.push_back(p);
     }
 
-    // generate random starting index for resampling wheel
-    std::uniform_int_distribution<int> uniintdist(0, num_particles_-1);
-    auto index = uniintdist(gen);
-
-    // get max weight
-    double max_weight = *max_element(weights.begin(), weights.end());
-
-    // uniform random distribution [0.0, max_weight)
-    std::uniform_real_distribution<double> unirealdist(0.0, max_weight);
-
-    double beta = 0.0;
-
-    // spin the resample wheel!
-    for (int i = 0; i < num_particles_; i++) {
-        beta += unirealdist(gen) * 2.0;
-        while (beta > weights[index]) {
-            beta -= weights[index];
-            index = (index + 1) % num_particles_;
-        }
-        new_particles_.push_back(particles_[index]);
-    }
-
-//    particles_ = new_particles_;
-    particles_.clear();
-    std::copy(new_particles_.begin(),new_particles_.end(),std::back_inserter(particles_));
+    this->particles_ = resampled_particles;
 
 }
 
@@ -154,11 +189,14 @@ void ParticleFilter::approximate_state_cov() {
             best_particle = particles_[i];
         }
     }
-    // update eigen vector
-    state_new << best_particle.x, best_particle.y,
-            constrain_angle(best_particle.theta);
+    // update state vector
+//    state_new << best_particle.x, best_particle.y,best_particle.theta;
+    state_new(0) = best_particle.x;
+    state_new(1) = best_particle.y;
+    state_new(2) = best_particle.theta;
 
-    // TODO - compute covariance
+
+
 
     P0.setZero();
     for (int i = 0; i < num_particles_; ++i) {
@@ -171,6 +209,7 @@ void ParticleFilter::approximate_state_cov() {
     }
 
     P = P0/num_particles_;
+
 
 }
 
@@ -186,44 +225,40 @@ FieldLocation ParticleFilter::convertVehicleToMapCoords(const MarkerObservation 
 
 }
 
-void ParticleFilter::dataAssociation(const std::vector<std::pair<int, FieldLocation>> &predicted,
-                                     std::vector<std::pair<int, FieldLocation>> &observations) {
 
-    // TODO: Find the predicted measurement that is closest to each observed measurement and assign the
-    //   observed measurement to this particular landmark.
-    // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
-    //   implement this method and use it as a helper during the updateWeights phase.
+double ParticleFilter::compute_likelihood(double delta_length, double delta_angle) {
 
-    for (unsigned int i = 0; i < observations.size(); i++) {
+    double std_landmark[] = {DETECTION_RANGE_ALPHA, DETECTION_ANGLE_SIGMA};
+    double num_a = delta_length * delta_length / (2.0 * std_landmark[0] * std_landmark[0]);
+    double num_b = delta_angle * delta_angle / (2.0 * std_landmark[1] * std_landmark[1]);
+    double numerator = exp(-1.0 * (num_a + num_b));
+    double denominator = 2.0 * M_PI * std_landmark[0] * std_landmark[1];
 
-        // grab current observation
-        FieldLocation o = observations[i].second;
 
-        // init minimum distance to maximum possible
-        double min_dist = std::numeric_limits<double>::max();
+    return numerator / denominator;
+}
 
-        // init id of landmark from map placeholder to be associated with the observation
-        int map_id = -1;
+void ParticleFilter::render_ellipse() {
 
-        for (unsigned int j = 0; j < predicted.size(); j++) {
-            // grab current prediction
-            FieldLocation p = predicted[j].second;
+    // show covariance ellipse
+    FilterBase::render_ellipse();
 
-            // get distance between current/predicted landmarks
-            auto dist = [](double x1, double y1, double x2, double y2) {
-                return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-            };
-            double cur_dist = dist(o.x, o.y, p.x, p.y);
+    // draw particles
 
-            // find the predicted landmark nearest the current observed landmark
-            if (cur_dist < min_dist) {
-                min_dist = cur_dist;
-                map_id = predicted[j].first;
-            }
-        }
-
-        // set the observation's id to the nearest predicted landmark's id
-        observations[i].first = map_id;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glPointSize(5.0f);
+    // points are red
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POINTS);
+    for(auto &p:particles_)
+    {
+        int xe, ye;
+        global2pixel(p.x, p.y, xe, ye);
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex2f(xe, ye);
     }
+    glEnd();
+    glPopMatrix();
 
 }

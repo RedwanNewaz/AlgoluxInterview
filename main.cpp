@@ -11,7 +11,7 @@
 #include "EKF.h"
 #include "ParticleFilter.h"
 
-#define KALMAN
+//#define KALMAN
 
 
 #ifdef KALMAN
@@ -19,6 +19,8 @@ EKF stateEstimator;
 #else
 ParticleFilter stateEstimator;
 #endif
+
+
 /**
  * getRobotPositionEstimate()
  * This function is called by the controller to retrieve the current 
@@ -26,7 +28,9 @@ ParticleFilter stateEstimator;
  */
 void getRobotPositionEstimate(RobotState& estimatePosn)
 {
-    // TODO: Write your procedures to set the current robot position estimate here
+    // TODO: Write your procedures to set the current robot position estimate
+
+
     auto X = stateEstimator.get_state();
     
     estimatePosn.x = X(0);

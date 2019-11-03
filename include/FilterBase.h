@@ -40,7 +40,7 @@ public:
      */
      void set(const RobotParams& parm, const std::vector<FieldLocation>& landmark);
 
-     void render_ellipse();
+    virtual void render_ellipse();
 
      void measurement_update(const std::vector<MarkerObservation>& landmarks);
 

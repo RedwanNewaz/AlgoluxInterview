@@ -45,7 +45,7 @@ void FilterBase::set(const RobotParams &parm, const std::vector<FieldLocation> &
 //    R(0, 0) = pow(parm.odom_noise_rotation_from_rotation + parm.odom_noise_rotation_from_translation, 2);
 //    R(1, 1) = pow(ALPHA3 + ALPHA4, 2);
 
-    FOV = parm.angle_fov;
+    FOV = parm.angle_fov * M_PI/180.0;
 
 
     // Don't forget to initialize specific filter later !
@@ -152,11 +152,13 @@ void FilterBase::measurement_update(const std::vector<MarkerObservation> &landma
     {
         if(l.orientation<FOV)
         {
-            debug("marker detected "<<l.markerIndex);
+            debug("marker detected "<<l.markerIndex<<" "<<l.orientation);
 
 
             detected.push_back(std::make_pair(true_landmarks_[l.markerIndex], l));
         }
+        else
+            debug(" filtered marker "<<l.orientation);
     }
 
     landmark_update(detected);

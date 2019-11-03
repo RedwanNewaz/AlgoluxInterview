@@ -10,6 +10,8 @@
 #include <math.h>
 #include <numeric>
 #include <algorithm>
+#include <unordered_map>
+#include <iterator>
 
 struct Particle{
     int id ;
@@ -42,7 +44,7 @@ public:
 
 
 private:
-    const int num_particles_ = 300;
+    const int num_particles_ = 1000;
     const int resample_particles = 50;
 
     // system matrix
@@ -57,6 +59,17 @@ private:
     // landmarks that the robot has seen so far
     std::vector<MarkerObservation> last_seen_landmarks_;
 protected:
+
+public:
+    /**
+    * FilterBase class shows ellipse only.
+     * Here I have shown the distribution of particles
+    */
+    void render_ellipse() override;
+
+protected:
+
+
     /**
      * Calculate and output the average weighted error of the particle filter
      * all time steps so far. Then compute error
@@ -67,7 +80,7 @@ protected:
      * @param sigma standard deviation
      * @return Gaussina likelihood
      */
-//    double compute_likelihood(double mu, double sigma);
+    double compute_likelihood(double mu, double sigma);
 
     /**
      * resample particles based on its weight
